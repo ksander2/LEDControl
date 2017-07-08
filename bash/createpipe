@@ -1,0 +1,73 @@
+#!/bin/bash
+
+while true
+do
+echo "type number command:"
+echo "get-led-state [1]"
+echo "set-led-state [2]"
+echo "get-led-color [3]"
+echo "set-led-color [4]"
+echo "get-led-frequency [5]"
+echo "set led frequency [6]"
+
+command_send_str=""
+
+read number_command
+
+case "$number_command" in
+	1)
+	command_send_str='get-led-state'
+	;;
+	2)
+	echo "type state:"
+	echo "[on/off]"
+	read arg
+	printf -v command_send_str 'set-led-state [%s]' "$arg"
+	;;
+	3)
+	command_send_str='get-led-color'
+	;;
+	4)
+	echo "type color:"
+	echo "[red/green/blue]"
+	read arg
+	printf -v command_send_str 'set-led-color [%s]' "$arg"
+	;;
+	5)
+	command_send_str='get-led-rate'
+	;;
+	6)
+	echo "type rate"
+	echo "[0..5]"
+	read arg
+	printf -v command_send_str 'set-led-rate [%s]' "$arg"
+	;;
+esac
+echo command_send_str
+
+pipe=/tmp/pipeno.
+printf -v pipe '%s%s' "$pipe" "$$"
+echo $pipe
+trap "rm -f $pipe" EXIT
+
+if [[ ! -p $pipe ]]; then
+    mkfifo $pipe
+fi
+
+printf -v command_send_str '%s %s' "$$" "$command_send_str"
+echo $command_send_str > /tmp/my_named_pipe
+
+while true
+do
+    if read line <$pipe; then
+        if [[ "$line" == 'quit' ]]; then
+            break
+        fi
+	echo "=================="
+        echo $line
+	echo "=================="
+    fi
+done
+
+echo
+done
